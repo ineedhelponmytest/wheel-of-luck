@@ -190,7 +190,7 @@
 
             if (lastLogin !== today) {
                 // If today is a new day, give the player a daily bonus
-                const bonus = Math.floor(Math.random() * 50) + 10; // Random bonus between 10 and 50
+                const bonus = Math.floor(Math.random() * 5000) + 1000; // Random bonus between 1000 and 5000
                 totalEarnings += bonus;
                 sessionEarnings += bonus;
                 dailyBonusDisplay.textContent = `Daily Login Bonus: $${bonus}`;
