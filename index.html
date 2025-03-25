@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wheel of Luck</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 75px;
+            background-color: black;
+            text-align: center;
+			color: green;
+        }
+
+        .container {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #randomNumber {
+            font-size: 72px;
+            padding: 10px;
+            background-color: black;
+            border: 5px solid green;
+			border-radius: 20px;
+            margin: 20px;
+            width: 250px; /* Make width large enough */
+            height: 150px; /* Increase height */
+            display: flex;
+            justify-content: center;
+            align-items: center; /* This centers the text inside the box */
+            text-align: center; /* Ensures the text is centered horizontally */
+            font-weight: bold; /* Optional: makes the number bold */
+            line-height: 1.2; /* Ensures proper vertical alignment in case the number is too long */
+        }
+
+        button {
+			background-color: black;
+            padding: 15px 30px;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 10px;
+			border: 5px solid green;
+			border-radius: 20px;
+			color: green;
+        }
+
+        #collectButton:disabled {
+            background-color: black;
+			padding: 15px 30px;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 10px;
+            cursor: not-allowed;
+			color: green;
+        }
+
+        .earnings {
+            font-size: 18px;
+            margin-top: 10px;
+        }
+
+        .achievement {
+            font-size: 16px;
+            margin-top: 5px;
+            color: green;
+        }
+		
+		.resetButton {
+			background-color: black;
+            padding: 15px 30px;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 10px;
+			border: 5px solid red;
+			border-radius: 20px;
+			color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Wheel of Luck! By: ineedhelponmytest</h1>
+		<p>HOW TO PLAY: Press the "Spin" button to spin the wheel of luck, then either collect your total session earings, or keep spinning. The level changes every time you get 10 XP times the level you are currently on. the game is stored in your browser data so it will save your progress.</p>
+        <div id="randomNumber">0</div>
+        <button id="shuffleButton">Spin</button>
+        <button id="collectButton" disabled>Collect Earnings</button>
+        <div id="currentNumber" class="earnings">Current Spin: 0</div>
+        <div id="totalEarnings" class="earnings">Total Earnings: $0</div>
+        <div id="sessionEarnings" class="earnings">Session Earnings: $0</div>
+        <div id="level" class="earnings">Level: 1</div>
+        <div id="xp" class="earnings">XP: 0</div>
+        <!-- <div id="achievements"></div> !-->
+        <div id="dailyBonus"></div>
+        <button id="resetButton">Reset Game</button>
+    </div>
+
+    <script>
+        // Load stored data or initialize if not present
+        let totalEarnings = localStorage.getItem("totalEarnings") ? parseInt(localStorage.getItem("totalEarnings")) : 0;
+        let sessionEarnings = 0;
+        let currentEarnings = 0;
+        let level = localStorage.getItem("level") ? parseInt(localStorage.getItem("level")) : 1;
+        let xp = localStorage.getItem("xp") ? parseInt(localStorage.getItem("xp")) : 0;
+        let dailyLogin = localStorage.getItem("dailyLogin") === 'true'; // Track daily login
+
+        const randomNumberDisplay = document.getElementById('randomNumber');
+        const shuffleButton = document.getElementById('shuffleButton');
+        const collectButton = document.getElementById('collectButton');
+        const currentNumberDisplay = document.getElementById('currentNumber');
+        const totalEarningsDisplay = document.getElementById('totalEarnings');
+        const sessionEarningsDisplay = document.getElementById('sessionEarnings');
+        const levelDisplay = document.getElementById('level');
+        const xpDisplay = document.getElementById('xp');
+        const achievementsDisplay = document.getElementById('achievements');
+        const dailyBonusDisplay = document.getElementById('dailyBonus');
+        const resetButton = document.getElementById('resetButton');
+
+        const minValue = -1000;
+        const maxValue = 1000;
+
+        // Achievements
+        const achievements = [
+            { name: "Spin 10 times", unlocked: false, condition: () => xp >= 10 },
+            { name: "Earn $100", unlocked: false, condition: () => totalEarnings >= 100 },
+            { name: "Level 5", unlocked: false, condition: () => level >= 5 },
+        ];
+
+        // Function to generate random number
+        function getRandomNumber() {
+            return Math.floor(Math.random() * (maxValue - minValue + 1)) + minValue;
+        }
+
+        // Function to shuffle numbers in the text box
+        function shuffleNumbers() {
+            const randomTime = Math.floor(Math.random() * 2000) + 1000; // Random time between 1-3 seconds
+            const intervalTime = 50; // Faster interval for number shuffling (in milliseconds)
+
+            let shuffleInterval = setInterval(() => {
+                const randomNum = getRandomNumber();
+                randomNumberDisplay.textContent = randomNum;
+            }, intervalTime);
+
+            // After a random time, stop the shuffling
+            setTimeout(() => {
+                clearInterval(shuffleInterval);
+                // The final number is added to session earnings
+                currentEarnings = getRandomNumber();
+                randomNumberDisplay.textContent = currentEarnings;
+                currentNumberDisplay.textContent = `Current Spin: $${currentEarnings}`;
+                sessionEarnings += currentEarnings;
+                updateEarningsDisplays();
+                updateAchievements();
+                collectButton.disabled = false; // Enable collect button after shuffle
+            }, randomTime);
+        }
+
+        // Update the total and session earnings displays
+        function updateEarningsDisplays() {
+            totalEarningsDisplay.textContent = `Total Earnings: $${totalEarnings}`;
+            sessionEarningsDisplay.textContent = `Session Earnings: $${sessionEarnings}`;
+            levelDisplay.textContent = `Level: ${level}`;
+            xpDisplay.textContent = `XP: ${xp}`;
+        }
+
+        // Update achievements
+        function updateAchievements() {
+            achievements.forEach((achievement) => {
+                if (!achievement.unlocked && achievement.condition()) {
+                    achievement.unlocked = true;
+                    const achievementElement = document.createElement('div');
+                    achievementElement.className = 'achievement';
+                    achievementElement.textContent = `Achievement Unlocked: ${achievement.name}`;
+                    achievementsDisplay.appendChild(achievementElement);
+                }
+            });
+        }
+
+        // Handle daily login bonus
+        function checkDailyLogin() {
+            const today = new Date().toLocaleDateString();
+            const lastLogin = localStorage.getItem("lastLogin");
+
+            if (lastLogin !== today) {
+                // If today is a new day, give the player a daily bonus
+                const bonus = Math.floor(Math.random() * 50) + 10; // Random bonus between 10 and 50
+                totalEarnings += bonus;
+                sessionEarnings += bonus;
+                dailyBonusDisplay.textContent = `Daily Login Bonus: $${bonus}`;
+                localStorage.setItem("dailyLogin", 'true');
+                localStorage.setItem("lastLogin", today);
+                updateEarningsDisplays();
+            }
+        }
+
+        // Shuffle numbers when the button is clicked
+        shuffleButton.addEventListener('click', () => {
+            shuffleNumbers();
+            // Give XP after each spin
+            xp += 1;
+            if (xp >= 10 * level) {
+                levelUp();
+            }
+        });
+
+        // Collect earnings
+        collectButton.addEventListener('click', () => {
+            // Add session earnings to total earnings
+            totalEarnings += sessionEarnings;
+            // Save total earnings to local storage
+            localStorage.setItem('totalEarnings', totalEarnings);
+
+            // Reset session earnings
+            sessionEarnings = 0;
+
+            // Update displays and disable collect button
+            updateEarningsDisplays();
+            collectButton.disabled = true; // Disable collect button after collecting earnings
+        });
+
+        // Level up logic
+        function levelUp() {
+            level++;
+            xp = 0; // Reset XP
+            localStorage.setItem("level", level);
+            localStorage.setItem("xp", xp);
+            updateEarningsDisplays();
+        }
+
+        // Reset storage (clear all data)
+        resetButton.addEventListener('click', () => {
+            if (confirm("Are you sure you want to reset the game data?")) {
+                localStorage.clear();
+                // Reset all variables
+                totalEarnings = 0;
+                sessionEarnings = 0;
+                level = 1;
+                xp = 0;
+                achievements.forEach(achievement => achievement.unlocked = false);
+                dailyLogin = false;
+                updateEarningsDisplays();
+                achievementsDisplay.innerHTML = ''; // Clear achievements
+                dailyBonusDisplay.textContent = '';
+                alert("Game data has been reset!");
+            }
+        });
+
+        // Initial load of data
+        updateEarningsDisplays();
+        checkDailyLogin();
+    </script>
+</body>
+</html>
